@@ -1,0 +1,24 @@
+# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 8080
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["src/FileService.ClientApp/FileService.ClientApp.csproj", "src/FileService.ClientApp/"]
+COPY ["src/FileService.Client/FileService.Client.csproj", "src/FileService.Client/"]
+COPY ["src/FileService.Application/FileService.Application.csproj", "src/FileService.Application/"]
+COPY ["src/FileService.Domain/FileService.Domain.csproj", "src/FileService.Domain/"]
+RUN dotnet restore "src/FileService.ClientApp/FileService.ClientApp.csproj"
+COPY . .
+WORKDIR /src/src/FileService.ClientApp
+RUN dotnet build "FileService.ClientApp.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "FileService.ClientApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "FileService.ClientApp.dll"]

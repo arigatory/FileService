@@ -74,6 +74,21 @@ services:
     volumes:
       - ./src/FileService.WebApi/appsettings.Docker.json:/app/appsettings.json
 
+  # Клиентское приложение
+  clientapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.ClientApp
+    container_name: clientapp
+    ports:
+      - "9080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - FileServiceUrl=http://fileservice:8080
+    depends_on:
+      - fileservice
+
 volumes:
   minio1_data:
   minio2_data:
