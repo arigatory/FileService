@@ -9,12 +9,12 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-API_URL="http://localhost:7000"
+API_URL="http://localhost:8080"
 
 # Функция для проверки доступности API
 check_api() {
     echo -e "${BLUE}Проверяем доступность API...${NC}"
-    if curl -s -f "$API_URL/swagger/index.html" > /dev/null; then
+    if curl -s -f "$API_URL/swagger" > /dev/null; then
         echo -e "${GREEN}✓ API доступен${NC}"
         return 0
     else
@@ -34,7 +34,7 @@ create_test_file() {
 upload_file() {
     echo -e "${BLUE}1. Загружаем тестовый файл...${NC}"
     
-    response=$(curl -s -X POST "$API_URL/api/files/upload" \
+    response=$(curl -s -X POST "$API_URL/api/Files/upload" \
         -F "file=@test-file.txt" \
         -F "tags=test,curl,demo")
     
@@ -56,7 +56,7 @@ upload_file() {
 get_file_info() {
     echo -e "${BLUE}2. Получаем информацию о файле...${NC}"
     
-    response=$(curl -s "$API_URL/api/files/$file_id/info")
+    response=$(curl -s "$API_URL/api/Files/$file_id/info")
     
     if [ $? -eq 0 ] && [[ $response == *"id"* ]]; then
         echo -e "${GREEN}✓ Информация получена успешно${NC}"
@@ -74,7 +74,7 @@ get_file_info() {
 download_file() {
     echo -e "${BLUE}3. Скачиваем файл...${NC}"
     
-    curl -s "$API_URL/api/files/$file_id" -o downloaded-file.txt
+    curl -s "$API_URL/api/Files/$file_id" -o downloaded-file.txt
     
     if [ $? -eq 0 ] && [ -f downloaded-file.txt ]; then
         echo -e "${GREEN}✓ Файл скачан успешно${NC}"
@@ -110,7 +110,7 @@ compare_files() {
 delete_file() {
     echo -e "${BLUE}5. Удаляем файл...${NC}"
     
-    response=$(curl -s -X DELETE "$API_URL/api/files/$file_id" -w "%{http_code}")
+    response=$(curl -s -X DELETE "$API_URL/api/Files/$file_id" -w "%{http_code}")
     http_code="${response: -3}"
     
     if [ "$http_code" = "204" ]; then
@@ -129,7 +129,7 @@ delete_file() {
 verify_deletion() {
     echo -e "${BLUE}6. Проверяем удаление файла...${NC}"
     
-    response=$(curl -s "$API_URL/api/files/$file_id/info" -w "%{http_code}")
+    response=$(curl -s "$API_URL/api/Files/$file_id/info" -w "%{http_code}")
     http_code="${response: -3}"
     
     if [ "$http_code" = "404" ]; then
