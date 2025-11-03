@@ -1,6 +1,27 @@
 using FileService.Client;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.IIS;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Настройка лимитов для больших файлов
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = long.MaxValue; // Без ограничений
+});
+
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = long.MaxValue; // Без ограничений
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = long.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
 
 // Add services to the container.
 builder.Services.AddControllers();

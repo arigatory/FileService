@@ -73,6 +73,12 @@ services:
       - createbuckets
     volumes:
       - ./src/FileService.WebApi/appsettings.Docker.json:/app/appsettings.json
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+        reservations:
+          memory: 256M
 
   # Клиентское приложение
   clientapp:
@@ -88,6 +94,12 @@ services:
       - FileServiceUrl=http://fileservice:8080
     depends_on:
       - fileservice
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+        reservations:
+          memory: 256M
 
 volumes:
   minio1_data:
