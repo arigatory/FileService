@@ -21,6 +21,9 @@ builder.Services.Configure<FormOptions>(options =>
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartBodyLengthLimit = long.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
+    options.BufferBody = false;  // Отключаем буферизацию тела запроса
+    options.BufferBodyLengthLimit = 1;  // Минимальный буфер
+    options.MemoryBufferThreshold = 1;  // Сразу используем временные файлы
 });
 
 // Add services to the container.
@@ -39,6 +42,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpClient<FileServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("FileServiceUrl") ?? "http://localhost:8080");
+    client.Timeout = System.Threading.Timeout.InfiniteTimeSpan; // Убираем таймауты для больших файлов
 });
 
 var app = builder.Build();

@@ -23,6 +23,9 @@ builder.Services.Configure<FormOptions>(options =>
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartBodyLengthLimit = long.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
+    options.BufferBody = false;  // Отключаем буферизацию тела запроса
+    options.BufferBodyLengthLimit = 1;  // Минимальный буфер
+    options.MemoryBufferThreshold = 1;  // Сразу используем временные файлы
 });
 
 // Add services to the container.

@@ -40,7 +40,8 @@ public class FilesController : ControllerBase
                 FileStream = file.OpenReadStream(),
                 FileName = file.FileName,
                 ContentType = file.ContentType,
-                Tags = tags
+                Tags = tags,
+                FileSize = file.Length  // Передаем размер файла отдельно
             };
 
             var result = await _mediator.Send(command);

@@ -76,7 +76,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M
+          memory: 400M  # Строгий лимит для тестирования утечек
         reservations:
           memory: 256M
 

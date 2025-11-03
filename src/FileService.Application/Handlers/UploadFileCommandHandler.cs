@@ -29,6 +29,9 @@ public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileU
         if (string.IsNullOrWhiteSpace(request.ContentType))
             throw new InvalidFileException("Content type is required.");
 
+        if (request.FileSize <= 0)
+            throw new InvalidFileException("File size must be greater than zero.");
+
         try
         {
             // Выбираем провайдер хранилища
@@ -47,7 +50,7 @@ public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileU
                 Id = Guid.NewGuid().ToString(),
                 OriginalFileName = request.FileName,
                 ContentType = request.ContentType,
-                Size = request.FileStream.Length,
+                Size = request.FileSize,  // Используем переданный размер вместо Stream.Length
                 StorageKey = storageKey,
                 StorageProvider = storageProvider.ProviderName,
                 UploadedAt = DateTime.UtcNow,
