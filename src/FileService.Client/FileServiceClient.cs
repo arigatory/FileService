@@ -80,7 +80,7 @@ public class FileServiceClient : IDisposable
         if (string.IsNullOrWhiteSpace(fileId))
             throw new ArgumentException("File ID cannot be null or empty.", nameof(fileId));
 
-        var response = await _httpClient.GetAsync($"api/files/{fileId}", cancellationToken);
+        var response = await _httpClient.GetAsync($"api/files/{fileId}", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             throw new System.IO.FileNotFoundException($"File with ID '{fileId}' not found.");
@@ -101,7 +101,7 @@ public class FileServiceClient : IDisposable
         if (string.IsNullOrWhiteSpace(fileId))
             throw new ArgumentException("File ID cannot be null or empty.", nameof(fileId));
 
-        var response = await _httpClient.GetAsync($"api/files/{fileId}/info", cancellationToken);
+        var response = await _httpClient.GetAsync($"api/files/{fileId}/info", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return null;
