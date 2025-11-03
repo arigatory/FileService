@@ -1,0 +1,79 @@
+services:
+  # Первый MinIO сервер
+  minio1:
+    image: minio/minio:latest
+    container_name: minio1
+    ports:
+      - "9001:9000"
+      - "9011:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio1_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Второй MinIO сервер
+  minio2:
+    image: minio/minio:latest
+    container_name: minio2
+    ports:
+      - "9002:9000"
+      - "9012:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio2_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Создание бакетов в MinIO
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      - minio1
+      - minio2
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set minio1 http://minio1:9000 minioadmin minioadmin123;
+      /usr/bin/mc alias set minio2 http://minio2:9000 minioadmin minioadmin123;
+      /usr/bin/mc mb minio1/primary-file-storage;
+      /usr/bin/mc mb minio2/secondary-file-storage;
+      /usr/bin/mc policy set public minio1/primary-file-storage;
+      /usr/bin/mc policy set public minio2/secondary-file-storage;
+      exit 0;
+      "
+
+  # Файловый микросервис
+  fileservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fileservice
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - AWS_DISABLE_S3_EXPRESS_SESSION_AUTH=true
+      - AWS_DISABLE_REQUEST_COMPRESSION=true
+    depends_on:
+      - minio1
+      - minio2
+      - createbuckets
+    volumes:
+      - ./src/FileService.WebApi/appsettings.Docker.json:/app/appsettings.json
+
+volumes:
+  minio1_data:
+  minio2_data:
