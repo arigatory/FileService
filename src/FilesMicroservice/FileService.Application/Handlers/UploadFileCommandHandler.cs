@@ -73,5 +73,12 @@ public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileU
         {
             throw new StorageException("Failed to upload file.", ex);
         }
+        finally
+        {
+            // Принудительная сборка мусора для гарантии освобождения памяти
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
     }
 }

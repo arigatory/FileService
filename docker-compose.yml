@@ -68,9 +68,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 400M  # Строгий лимит для тестирования утечек
+          memory: 300M  # Еще более строгий лимит для максимальной стабильности
         reservations:
-          memory: 256M
+          memory: 200M
 
   # Клиентское приложение
   clientapp:

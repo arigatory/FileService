@@ -46,5 +46,12 @@ public class DeleteFileCommandHandler : IRequestHandler<DeleteFileCommand, bool>
         {
             throw new StorageException("Failed to delete file.", ex);
         }
+        finally
+        {
+            // Принудительная сборка мусора для гарантии освобождения памяти
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
     }
 }

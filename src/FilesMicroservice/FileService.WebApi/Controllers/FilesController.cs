@@ -30,6 +30,9 @@ public class FilesController : ControllerBase
     [HttpPost("upload")]
     public async Task<ActionResult<FileUploadDto>> UploadFile(IFormFile file, [FromForm] string? tags = null)
     {
+        var initialMemory = GC.GetTotalMemory(false);
+        _logger.LogInformation("Upload started - Memory: {Memory:N0} bytes", initialMemory);
+        
         try
         {
             if (file == null || file.Length == 0)
@@ -45,6 +48,11 @@ public class FilesController : ControllerBase
             };
 
             var result = await _mediator.Send(command);
+            
+            var finalMemory = GC.GetTotalMemory(false);
+            _logger.LogInformation("Upload completed - Memory: {Memory:N0} bytes, Change: {Change:N0} bytes", 
+                finalMemory, finalMemory - initialMemory);
+            
             return Ok(result);
         }
         catch (InvalidFileException ex)
@@ -59,8 +67,17 @@ public class FilesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during file upload");
-            return StatusCode(500, "Unexpected error occurred.");
+            _logger.LogError(ex, "Error uploading file: {FileName}", file?.FileName);
+            return StatusCode(500, "An error occurred while uploading the file.");
+        }
+        finally
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var cleanupMemory = GC.GetTotalMemory(true);
+            _logger.LogInformation("Upload cleanup - Final memory: {Memory:N0} bytes", cleanupMemory);
         }
     }
 
@@ -72,6 +89,9 @@ public class FilesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetFile(string id)
     {
+        var initialMemory = GC.GetTotalMemory(false);
+        _logger.LogInformation("GetFile started - Memory: {Memory:N0} bytes", initialMemory);
+        
         try
         {
             var query = new GetFileQuery { FileId = id };
@@ -79,6 +99,10 @@ public class FilesController : ControllerBase
 
             if (result == null)
                 return NotFound($"File with ID '{id}' not found.");
+
+            var finalMemory = GC.GetTotalMemory(false);
+            _logger.LogInformation("GetFile completed - Memory: {Memory:N0} bytes, Change: {Change:N0} bytes", 
+                finalMemory, finalMemory - initialMemory);
 
             return File(result.FileStream, result.ContentType, result.OriginalFileName);
         }
@@ -97,6 +121,15 @@ public class FilesController : ControllerBase
             _logger.LogError(ex, "Unexpected error during file download");
             return StatusCode(500, "Unexpected error occurred.");
         }
+        finally
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var cleanupMemory = GC.GetTotalMemory(true);
+            _logger.LogInformation("GetFile cleanup - Final memory: {Memory:N0} bytes", cleanupMemory);
+        }
     }
 
     /// <summary>
@@ -107,6 +140,9 @@ public class FilesController : ControllerBase
     [HttpGet("{id}/info")]
     public async Task<ActionResult<FileInfoDto>> GetFileInfo(string id)
     {
+        var initialMemory = GC.GetTotalMemory(false);
+        _logger.LogInformation("GetFileInfo started - Memory: {Memory:N0} bytes", initialMemory);
+        
         try
         {
             var query = new GetFileInfoQuery { FileId = id };
@@ -115,12 +151,25 @@ public class FilesController : ControllerBase
             if (result == null)
                 return NotFound($"File with ID '{id}' not found.");
 
+            var finalMemory = GC.GetTotalMemory(false);
+            _logger.LogInformation("GetFileInfo completed - Memory: {Memory:N0} bytes, Change: {Change:N0} bytes", 
+                finalMemory, finalMemory - initialMemory);
+
             return Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting file info");
             return StatusCode(500, "Unexpected error occurred.");
+        }
+        finally
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var cleanupMemory = GC.GetTotalMemory(true);
+            _logger.LogInformation("GetFileInfo cleanup - Final memory: {Memory:N0} bytes", cleanupMemory);
         }
     }
 
@@ -132,6 +181,9 @@ public class FilesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteFile(string id)
     {
+        var initialMemory = GC.GetTotalMemory(false);
+        _logger.LogInformation("DeleteFile started - Memory: {Memory:N0} bytes", initialMemory);
+        
         try
         {
             var command = new DeleteFileCommand { FileId = id };
@@ -139,6 +191,10 @@ public class FilesController : ControllerBase
 
             if (!result)
                 return NotFound($"File with ID '{id}' not found.");
+
+            var finalMemory = GC.GetTotalMemory(false);
+            _logger.LogInformation("DeleteFile completed - Memory: {Memory:N0} bytes, Change: {Change:N0} bytes", 
+                finalMemory, finalMemory - initialMemory);
 
             return NoContent();
         }
@@ -156,6 +212,15 @@ public class FilesController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error during file deletion");
             return StatusCode(500, "Unexpected error occurred.");
+        }
+        finally
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var cleanupMemory = GC.GetTotalMemory(true);
+            _logger.LogInformation("DeleteFile cleanup - Final memory: {Memory:N0} bytes", cleanupMemory);
         }
     }
 }

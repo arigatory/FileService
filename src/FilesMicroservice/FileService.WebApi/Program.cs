@@ -1,11 +1,17 @@
 using FileService.Application.Handlers;
 using FileService.Infrastructure;
+using FileService.WebApi.Middleware;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.IIS;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using System.Reflection;
+using System.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Настройка агрессивной сборки мусора для минимального потребления памяти
+GCSettings.LatencyMode = GCLatencyMode.Batch; // Приоритет - освобождение памяти
+AppContext.SetSwitch("System.GC.RetainVM", false); // Не удерживаем память в VM
 
 // Настройка лимитов для больших файлов
 builder.Services.Configure<IISServerOptions>(options =>
@@ -24,8 +30,9 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = long.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
     options.BufferBody = false;  // Отключаем буферизацию тела запроса
-    options.BufferBodyLengthLimit = 1;  // Минимальный буфер
-    options.MemoryBufferThreshold = 1;  // Сразу используем временные файлы
+    options.BufferBodyLengthLimit = 1;  // Минимальный буфер - 1 байт
+    options.MemoryBufferThreshold = 1;  // Сразу используем временные файлы - 1 байт
+    options.MultipartBoundaryLengthLimit = 128; // Минимальный размер boundary
 });
 
 // Add services to the container.
@@ -67,11 +74,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Добавляем middleware для мониторинга памяти
+app.UseMiddleware<MemoryMonitoringMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
 // Health check endpoint
 app.MapGet("/health", () => "OK");
+
+// Force garbage collection after app initialization
+GC.Collect();
+GC.WaitForPendingFinalizers();
+GC.Collect();
 
 app.Run();

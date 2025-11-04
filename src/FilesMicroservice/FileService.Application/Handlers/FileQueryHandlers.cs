@@ -50,6 +50,13 @@ public class GetFileQueryHandler : IRequestHandler<GetFileQuery, FileDownloadDto
         {
             throw new StorageException("Failed to download file.", ex);
         }
+        finally
+        {
+            // Принудительная сборка мусора для гарантии освобождения памяти
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
     }
 }
 
