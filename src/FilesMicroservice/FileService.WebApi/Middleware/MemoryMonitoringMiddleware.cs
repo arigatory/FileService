@@ -24,21 +24,17 @@ public class MemoryMonitoringMiddleware
         }
         finally
         {
-            // Принудительная сборка мусора после каждого запроса
-            var beforeGC = GC.GetTotalMemory(false);
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            var afterGC = GC.GetTotalMemory(false);
+            // Естественная сборка мусора без принуждения
+            // В потоковой архитектуре GC должен работать сам по себе
+            var afterMemory = GC.GetTotalMemory(false);
             
-            var memoryFreed = beforeGC - afterGC;
-            
-            // Логгируем только если освободилось много памяти
-            if (memoryFreed > 1024 * 1024) // > 1MB
+            // Логгируем только значительные изменения памяти
+            var memoryChange = afterMemory - initialMemory;
+            if (Math.Abs(memoryChange) > 5 * 1024 * 1024) // > 5MB
             {
                 _logger.LogInformation(
-                    "Memory cleaned up: {MemoryFreed:N0} bytes for {Method} {Path}",
-                    memoryFreed, context.Request.Method, context.Request.Path);
+                    "Memory change: {MemoryChange:+N0;-N0;0} bytes for {Method} {Path}",
+                    memoryChange, context.Request.Method, context.Request.Path);
             }
         }
     }

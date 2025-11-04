@@ -68,7 +68,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 300M  # Еще более строгий лимит для максимальной стабильности
+          memory: 300M  # Строгий лимит - наш алгоритм должен укладываться
         reservations:
           memory: 200M
 

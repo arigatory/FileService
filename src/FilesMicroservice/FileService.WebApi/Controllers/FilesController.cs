@@ -62,13 +62,21 @@ public class FilesController : ControllerBase
         }
         catch (StorageException ex)
         {
-            _logger.LogError(ex, "Storage error during file upload");
-            return StatusCode(500, "Internal server error during file upload.");
+            _logger.LogError(ex, "Storage error during file upload. File: {FileName}, Size: {FileSize}", 
+                file?.FileName, file?.Length);
+            return StatusCode(500, $"Storage error: {ex.Message}");
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Upload timeout for file: {FileName}, Size: {FileSize}", 
+                file?.FileName, file?.Length);
+            return StatusCode(408, "Upload timed out. File too large or connection too slow.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading file: {FileName}", file?.FileName);
-            return StatusCode(500, "An error occurred while uploading the file.");
+            _logger.LogError(ex, "Unexpected error uploading file: {FileName}, Size: {FileSize}, Type: {ExceptionType}", 
+                file?.FileName, file?.Length, ex.GetType().Name);
+            return StatusCode(500, $"Unexpected error: {ex.Message}");
         }
         finally
         {

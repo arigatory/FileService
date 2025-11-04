@@ -21,7 +21,11 @@ public static class DependencyInjection
             var s3ClientConfig = new AmazonS3Config
             {
                 RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(s3Config.Region),
-                UseHttp = true // Для MinIO обычно используется HTTP
+                UseHttp = true, // Для MinIO обычно используется HTTP
+                // УБИРАЕМ ВСЕ ТАЙМАУТЫ ДЛЯ БОЛЬШИХ ФАЙЛОВ!
+                Timeout = TimeSpan.FromDays(1), // 24 часа на операцию
+                // ReadWriteTimeout устарело - используем CancellationToken
+                MaxConnectionsPerServer = 50 // Больше подключений для параллельности
             };
 
             // Если указан ServiceUrl (для MinIO), используем его
@@ -39,7 +43,14 @@ public static class DependencyInjection
         // Если нет конфигурации, создаем дефолтный провайдер для демонстрации
         if (!storageProviders.Any())
         {
-            var defaultS3Client = new AmazonS3Client();
+            var defaultS3Config = new AmazonS3Config
+            {
+                UseHttp = true,
+                Timeout = TimeSpan.FromDays(1), // 24 часа на операцию
+                // ReadWriteTimeout устарело - используем CancellationToken
+                MaxConnectionsPerServer = 50
+            };
+            var defaultS3Client = new AmazonS3Client(defaultS3Config);
             var defaultProvider = new S3StorageProvider(defaultS3Client, "default-bucket", "default-s3");
             storageProviders.Add(defaultProvider);
         }

@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
+using Amazon.S3.Transfer;
 using FileService.Domain.Interfaces;
 using FileService.Domain.Exceptions;
 using DomainFileNotFoundException = FileService.Domain.Exceptions.FileNotFoundException;
@@ -28,21 +29,35 @@ public class S3StorageProvider : IStorageProvider
         {
             var key = GenerateStorageKey(fileName);
             
-            // Простейший PutObjectRequest без шифрования
-            var request = new PutObjectRequest();
-            request.BucketName = _bucketName;
-            request.Key = key;
-            request.InputStream = fileStream;
-            request.ContentType = contentType;
-
-            var response = await _s3Client.PutObjectAsync(request, cancellationToken);
+            // КОНСТАНТНАЯ ПАМЯТЬ: Используем TransferUtility с минимальными настройками для постоянного потребления
+            using var transferUtility = new Amazon.S3.Transfer.TransferUtility(_s3Client);
             
-            if (response.HttpStatusCode != System.Net.HttpStatusCode.OK)
+            var request = new Amazon.S3.Transfer.TransferUtilityUploadRequest
             {
-                throw new StorageException($"Failed to upload file to S3. Status: {response.HttpStatusCode}");
-            }
+                BucketName = _bucketName,
+                Key = key,
+                InputStream = fileStream,
+                ContentType = contentType,
+                // Минимальные настройки для константной памяти
+                PartSize = 5 * 1024 * 1024, // 5MB parts - минимум для S3 multipart
+                CannedACL = Amazon.S3.S3CannedACL.Private,
+                ServerSideEncryptionMethod = Amazon.S3.ServerSideEncryptionMethod.None,
+                StorageClass = Amazon.S3.S3StorageClass.Standard,
+                AutoCloseStream = false,
+                AutoResetStreamPosition = false
+            };
 
+            await transferUtility.UploadAsync(request, cancellationToken);
+            
             return key;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            throw new StorageException($"S3 specific error uploading file: {ex.ErrorCode} - {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            throw new StorageException($"Upload timeout for file: {fileName}", ex);
         }
         catch (Exception ex) when (!(ex is StorageException))
         {

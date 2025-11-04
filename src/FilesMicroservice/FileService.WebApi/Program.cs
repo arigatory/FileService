@@ -2,26 +2,24 @@ using FileService.Application.Handlers;
 using FileService.Infrastructure;
 using FileService.WebApi.Middleware;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Server.IIS;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using System.Reflection;
 using System.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Настройка агрессивной сборки мусора для минимального потребления памяти
-GCSettings.LatencyMode = GCLatencyMode.Batch; // Приоритет - освобождение памяти
-AppContext.SetSwitch("System.GC.RetainVM", false); // Не удерживаем память в VM
+// Стандартные серверные настройки для потокового проксирования
+GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
 
-// Настройка лимитов для больших файлов
-builder.Services.Configure<IISServerOptions>(options =>
-{
-    options.MaxRequestBodySize = long.MaxValue; // Без ограничений
-});
-
+// Настройка Kestrel
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = long.MaxValue; // Без ограничений
+    options.Limits.MaxRequestBodySize = long.MaxValue;
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromDays(1);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromDays(1);
+    options.Limits.MaxConcurrentConnections = null;
+    options.Limits.MaxConcurrentUpgradedConnections = null;
+    options.Limits.MinRequestBodyDataRate = null;
+    options.Limits.MinResponseDataRate = null;
 });
 
 builder.Services.Configure<FormOptions>(options =>
@@ -29,64 +27,46 @@ builder.Services.Configure<FormOptions>(options =>
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartBodyLengthLimit = long.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
-    options.BufferBody = false;  // Отключаем буферизацию тела запроса
-    options.BufferBodyLengthLimit = 1;  // Минимальный буфер - 1 байт
-    options.MemoryBufferThreshold = 1;  // Сразу используем временные файлы - 1 байт
-    options.MultipartBoundaryLengthLimit = 128; // Минимальный размер boundary
+    options.BufferBody = false;
+    options.BufferBodyLengthLimit = 1;
+    options.MemoryBufferThreshold = 1;
+    options.MultipartBoundaryLengthLimit = 128;
 });
 
-// Add services to the container.
+// Add services
 builder.Services.AddControllers();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { 
-        Title = "File Service API", 
-        Version = "v1",
-        Description = "Микросервис для загрузки, получения и удаления файлов с поддержкой нескольких S3 хранилищ"
-    });
-    
-    // Включаем XML комментарии для Swagger
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-});
+builder.Services.AddSwaggerGen();
 
-// Добавляем MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(UploadFileCommandHandler).Assembly));
+// Регистрируем MediatR
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(typeof(UploadFileCommandHandler).Assembly);
+});
 
 // Добавляем Infrastructure
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
-// Добавляем middleware для мониторинга памяти
+app.UseMiddleware<ConcurrencyLimitMiddleware>();
 app.UseMiddleware<MemoryMonitoringMiddleware>();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
-// Health check endpoint
+// Health endpoints
 app.MapGet("/health", () => "OK");
-
-// Force garbage collection after app initialization
-GC.Collect();
-GC.WaitForPendingFinalizers();
-GC.Collect();
+app.MapGet("/status", () => ConcurrencyLimitMiddleware.GetSystemStatus());
 
 app.Run();
