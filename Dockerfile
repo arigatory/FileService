@@ -6,19 +6,19 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Копируем файлы проектов
-COPY ["src/FileService.WebApi/FileService.WebApi.csproj", "src/FileService.WebApi/"]
-COPY ["src/FileService.Application/FileService.Application.csproj", "src/FileService.Application/"]
-COPY ["src/FileService.Infrastructure/FileService.Infrastructure.csproj", "src/FileService.Infrastructure/"]
-COPY ["src/FileService.Domain/FileService.Domain.csproj", "src/FileService.Domain/"]
+COPY ["src/FilesMicroservice/FileService.WebApi/FileService.WebApi.csproj", "src/FilesMicroservice/FileService.WebApi/"]
+COPY ["src/FilesMicroservice/FileService.Application/FileService.Application.csproj", "src/FilesMicroservice/FileService.Application/"]
+COPY ["src/FilesMicroservice/FileService.Infrastructure/FileService.Infrastructure.csproj", "src/FilesMicroservice/FileService.Infrastructure/"]
+COPY ["src/FilesMicroservice/FileService.Domain/FileService.Domain.csproj", "src/FilesMicroservice/FileService.Domain/"]
 
 # Восстанавливаем зависимости
-RUN dotnet restore "src/FileService.WebApi/FileService.WebApi.csproj"
+RUN dotnet restore "src/FilesMicroservice/FileService.WebApi/FileService.WebApi.csproj"
 
 # Копируем весь исходный код
 COPY . .
 
 # Строим приложение
-WORKDIR "/src/src/FileService.WebApi"
+WORKDIR "/src/src/FilesMicroservice/FileService.WebApi"
 RUN dotnet build "FileService.WebApi.csproj" -c Release -o /app/build
 
 FROM build AS publish

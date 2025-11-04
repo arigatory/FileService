@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FileService.Client\FileService.Client.csproj" />
+    <ProjectReference Include="..\..\Lib\FileService.Client\FileService.Client.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,13 +6,11 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY ["src/FileService.ClientApp/FileService.ClientApp.csproj", "src/FileService.ClientApp/"]
-COPY ["src/FileService.Client/FileService.Client.csproj", "src/FileService.Client/"]
-COPY ["src/FileService.Application/FileService.Application.csproj", "src/FileService.Application/"]
-COPY ["src/FileService.Domain/FileService.Domain.csproj", "src/FileService.Domain/"]
-RUN dotnet restore "src/FileService.ClientApp/FileService.ClientApp.csproj"
+COPY ["src/TestClientApp/FileService.ClientApp/FileService.ClientApp.csproj", "src/TestClientApp/FileService.ClientApp/"]
+COPY ["src/Lib/FileService.Client/FileService.Client.csproj", "src/Lib/FileService.Client/"]
+RUN dotnet restore "src/TestClientApp/FileService.ClientApp/FileService.ClientApp.csproj"
 COPY . .
-WORKDIR /src/src/FileService.ClientApp
+WORKDIR /src/src/TestClientApp/FileService.ClientApp
 RUN dotnet build "FileService.ClientApp.csproj" -c Release -o /app/build
 
 FROM build AS publish
